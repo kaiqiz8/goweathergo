@@ -1,2 +1,7 @@
-1. helper Go package to load env variables from file into environment at runtime
+This project call weather api to get weather of location user specified and pass the detailed weather information to GPT LLM to give recommendation on what to wear
+
+
+Tool used:
+1. net/http
+2. helper Go package to load env variables from file into environment at runtime
 github.com/joho/godotenv
