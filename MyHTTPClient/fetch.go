@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
-	"strings"
 )
 
 type Request struct {
@@ -15,12 +13,12 @@ type Request struct {
 	Headers map[string]string
 }
 
-type Response struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       []byte
-	Proto      string
-}
+// type Response struct {
+// 	StatusCode int
+// 	Headers    map[string]string
+// 	Body       []byte
+// 	Proto      string
+// }
 
 func Fetch(req Request) (Response, error) {
 	// Parse the URL
@@ -66,46 +64,5 @@ func Fetch(req Request) (Response, error) {
 	// Makes it easier to read text line by line (ReadString('\n')).
 	// Under the hood, this reads from the network socket.
 
-	statusLine, err := reader.ReadString('\n') // Example: HTTP/1.1 200 OK\r\n
-	if err != nil {
-		return Response{}, fmt.Errorf("failed to read status line: %w", err)
-	}
-	statusParts := strings.SplitN(statusLine, " ", 3)
-	if len(statusParts) < 2 {
-		return Response{}, fmt.Errorf("malformed status line: %s", statusLine)
-	}
-	proto := statusParts[0]
-	statusCode, err := strconv.Atoi(statusParts[1]) // strconv.Atoi converts "200" (string) → 200 (int)
-	if err != nil {
-		return Response{}, fmt.Errorf("invalid status code: %w", err)
-	}
-
-	// Read headers
-	headersMap := make(map[string]string)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return Response{}, fmt.Errorf("failed to read headers: %w", err)
-		}
-		if line == "\r\n" {
-			break // End of headers
-		}
-		headerParts := strings.SplitN(line, ":", 2)
-		if len(headerParts) == 2 {
-			headersMap[strings.TrimSpace(headerParts[0])] = strings.TrimSpace(headerParts[1])
-		}
-	}
-
-	// Read body
-	body, err := reader.ReadBytes(0) // Read until EOF
-	if err != nil && err.Error() != "EOF" {
-		return Response{}, fmt.Errorf("failed to read body: %w", err)
-	}
-
-	return Response{
-		StatusCode: statusCode,
-		Headers:    headersMap,
-		Body:       body,
-		Proto:      proto,
-	}, nil
+	return ParseResponse(reader)
 }
