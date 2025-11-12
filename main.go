@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ai "goweathergo/AI"
 	config "goweathergo/Config"
+	myhttpclient "goweathergo/MyHTTPClient"
 	"net/http"
 	"os"
 	"strings"
@@ -98,22 +99,29 @@ func main() {
 	APIKey := os.Getenv("WeatherAPIKey")
 
 	url := fmt.Sprintf(config.BaseURL + config.CurrentWeatherEndpoint + "?key=" + APIKey + "&q=" + city)
-	resp, err := http.Get(url)
+	// resp, err := http.Get(url)
+	resp, err := myhttpclient.Get(url)
 
 	if err != nil {
 		fmt.Println("❌ Error fetching weather:", err)
 		return
 	}
-	defer resp.Body.Close() // Ensure the response body is closed after reading
+	// defer resp.Body.Close() // Ensure the response body is closed after reading
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("❌ Error: Received non-OK HTTP status:", resp.Status)
+		// fmt.Println("❌ Error: Received non-OK HTTP status:", resp.Status)
+		fmt.Println("❌ Error: Received non-OK HTTP status:")
 		return
 	}
 
 	var data WeatherResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		fmt.Println("❌ Error decoding response:", err)
+	// if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	// 	fmt.Println("❌ Error decoding response:", err)
+	// }
+
+	if err := json.Unmarshal(resp.Body, &data); err != nil {
+		fmt.Println("❌ Error unmarshaling JSON:", err)
+		return
 	}
 
 	fmt.Printf("Weather in %s, %s, %s: \n", data.Location.Name, data.Location.Region, data.Location.Country)
