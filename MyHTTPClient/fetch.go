@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"time"
 )
 
 type Request struct {
@@ -14,14 +15,14 @@ type Request struct {
 	Headers map[string]string
 }
 
-// type Response struct {
-// 	StatusCode int
-// 	Headers    map[string]string
-// 	Body       []byte
-// 	Proto      string
-// }
+//	type Response struct {
+//		StatusCode int
+//		Headers    map[string]string
+//		Body       []byte
+//		Proto      string
+//	}
 
-func Fetch(req Request) (Response, error) {
+func Fetch(req Request, redirectCount int) (Response, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(req.URL)
 	if err != nil {
@@ -38,10 +39,12 @@ func Fetch(req Request) (Response, error) {
 	}
 	address := net.JoinHostPort(host, port)
 
+	dialer := net.Dialer{Timeout: 5 * time.Second}
+
 	// Open a TCP connection
 	var conn net.Conn
 	if parsedURL.Scheme == "https" {
-		tlsConn, err := tls.Dial("tcp", address, &tls.Config{
+		tlsConn, err := tls.DialWithDialer(&dialer, "tcp", address, &tls.Config{
 			ServerName: host, // SNI support
 			NextProtos: []string{"http/1.1"},
 		})
@@ -50,7 +53,7 @@ func Fetch(req Request) (Response, error) {
 		}
 		conn = tlsConn
 	} else {
-		tcpConn, err := net.Dial("tcp", address)
+		tcpConn, err := dialer.Dial("tcp", address)
 		if err != nil {
 			return Response{}, fmt.Errorf("failed to connect to %s server: %w", address, err)
 		}
