@@ -2,6 +2,7 @@ package myhttpclient
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/url"
@@ -29,15 +30,36 @@ func Fetch(req Request) (Response, error) {
 	host := parsedURL.Hostname()
 	port := parsedURL.Port()
 	if port == "" {
-		port = "80" // Default to port 80 for HTTP
+		if parsedURL.Scheme == "https" {
+			port = "443"
+		} else {
+			port = "80" // Default to port 80 for HTTP
+		}
 	}
 	address := net.JoinHostPort(host, port)
 
 	// Open a TCP connection
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		return Response{}, fmt.Errorf("failed to connect to %s server: %w", address, err)
+	var conn net.Conn
+	if parsedURL.Scheme == "https" {
+		tlsConn, err := tls.Dial("tcp", address, &tls.Config{
+			ServerName: host, // SNI support
+			NextProtos: []string{"http/1.1"},
+		})
+		if err != nil {
+			return Response{}, fmt.Errorf("TLS handshake failed: %w", err)
+		}
+		conn = tlsConn
+	} else {
+		tcpConn, err := net.Dial("tcp", address)
+		if err != nil {
+			return Response{}, fmt.Errorf("failed to connect to %s server: %w", address, err)
+		}
+		conn = tcpConn
 	}
+	// conn, err := net.Dial("tcp", address)
+	// if err != nil {
+	// 	return Response{}, fmt.Errorf("failed to connect to %s server: %w", address, err)
+	// }
 	defer conn.Close() // ensures the connection is closed when this function exits, this function refers to Fetch
 
 	// Compose the HTTP request
